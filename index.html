@@ -1,144 +1,83 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>文件上传分享页</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
-    }
-    body {
-      background: #f6f8fa;
-      padding: 30px 20px;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    .online {
-      background: #0969da;
-      color: white;
-      padding: 14px 20px;
-      border-radius: 10px;
-      text-align: center;
-      margin-bottom: 30px;
-      font-size: 16px;
-    }
-    .box {
-      background: white;
-      border-radius: 12px;
-      padding: 30px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    h2 {
-      margin-bottom: 20px;
-      color: #24292f;
-      text-align: center;
-    }
-    .upload {
-      border: 2px dashed #d1d9e0;
-      border-radius: 10px;
-      padding: 40px 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s;
-    }
-    .upload:hover {
-      border-color: #0969da;
-    }
-    #file {
-      display: none;
-    }
-    .btn {
-      background: #0969da;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      margin-top: 20px;
-      cursor: pointer;
-    }
-    .btn:disabled {
-      background: #8c959f;
-      cursor: not-allowed;
-    }
-    .down {
-      margin-top: 20px;
-      padding: 15px;
-      background: #f6f8fa;
-      border-radius: 8px;
-      word-break: break-all;
-      display: none;
-    }
-    a {
-      color: #0969da;
-      text-decoration: none;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>文件分享页</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif}
+body{background:#f6f8fa;padding:30px 20px;max-width:800px;margin:0 auto}
+.online{background:#0969da;color:white;padding:14px 20px;border-radius:10px;text-align:center;margin-bottom:30px}
+.box{background:white;border-radius:12px;padding:30px;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+h2{margin-bottom:20px;text-align:center}
+.upload{border:2px dashed #d1d9e0;border-radius:10px;padding:40px 20px;text-align:center;cursor:pointer}
+.upload:hover{border-color:#0969da}
+#file{display:none}
+.btn{background:#0969da;color:white;border:none;padding:10px 20px;border-radius:8px;margin-top:20px;cursor:pointer}
+.btn:disabled{background:#8c959f;cursor:not-allowed}
+.down{margin-top:20px;padding:15px;background:#f6f8fa;border-radius:8px;word-break:break-all;display:none}
+a{color:#0969da}
+</style>
 </head>
-<body>
 
-<!-- 在线人数（免费真实统计） -->
-<div class="online" id="online">加载在线人数中...</div>
+<body>
+<div class="online" id="online">加载在线人数...</div>
 
 <div class="box">
-  <h2>文件上传 & 临时下载</h2>
-  
-  <label class="upload" id="drop">
-    <p>点击或拖拽文件到此处上传</p>
+  <h2>文件上传 & 下载</h2>
+  <label class="upload" id="dropArea">
+    <p>点击或拖拽文件上传</p>
     <input type="file" id="file">
   </label>
-
-  <button class="btn" id="copy" disabled>复制下载链接</button>
+  <button class="btn" id="copyBtn" disabled>复制下载链接</button>
   <div class="down" id="result"></div>
 </div>
 
 <script>
-// 在线人数（免费第三方，GitHub Pages 可用）
-fetch('https://count.kang-gg.com/count?url=' + encodeURIComponent(window.location.hostname))
-  .then(res => res.text())
-  .then(num => {
-    document.getElementById('online').innerText = '当前在线人数：' + num + ' 人';
-  })
-  .catch(() => {
-    document.getElementById('online').innerText = '当前在线人数：统计服务加载中';
-  });
+// ======================================
+// 稳定在线人数（免费稳定不卡顿，GitHub专用）
+// ======================================
+async function loadOnline() {
+  try {
+    const r = await fetch("https://api.lhlyun.com/online", { signal: AbortSignal.timeout(3000) });
+    const t = await r.text();
+    document.getElementById("online").textContent = "当前在线：" + t + " 人";
+  } catch (e) {
+    document.getElementById("online").textContent = "当前在线：加载失败（不影响上传下载）";
+  }
+}
+loadOnline();
 
-// 文件上传 & 下载
-const fileInput = document.getElementById('file');
-const result = document.getElementById('result');
-const copyBtn = document.getElementById('copy');
-let fileURL = null;
+// ======================================
+// 文件上传 + 下载 + 拖拽
+// ======================================
+常数 文件输入 = 文件.getElementById("文件");
+常数 结果 = 文件.getElementById("结果");
+常数 copyBtn = 文件.getElementById(" copyBtn ");
+常数 拖放区 = 文件.getElementById(" dropArea ");
+让 文件Url;
 
-fileInput.onchange = function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  if (fileURL) URL.revokeObjectURL(fileURL);
-  fileURL = URL.createObjectURL(file);
-  result.innerHTML = `文件名：${file.name}<br><a href="${fileURL}" download="${file.name}">点此下载</a>`;
-  result.style.display = 'block';
-  copyBtn.disabled = false;
-};
-
-copyBtn.onclick = function() {
-  if (!fileURL) return;
-  navigator.clipboard.writeText(fileURL).then(() => {
-    alert('链接已复制！');
-  });
-};
-
-// 拖拽上传
-const drop = document.getElementById('drop');
-['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
-  drop.addEventListener(evt, e => e.preventDefault());
+文件输入.addEventListener(“改变”, () => {
+  常数 f = 文件输入.文件[0];
+  如果 (!f) 返回;
+  如果 (文件Url) 统一资源定位器.revokeObjectURL(文件Url);
+  文件Url = 统一资源定位器.createObjectURL(f);
+  结果.innerHTML = `文件名：${f.名字}< br><a href= "${文件Url}"下载= "${f.名字}">点此下载</a > `;
+  结果.风格.显示 = "阻止";
+  copyBtn.有缺陷的 = 错误的;
 });
-drop.addEventListener('drop', e => {
-  fileInput.files = e.dataTransfer.files;
-  fileInput.dispatchEvent(new Event('change'));
+
+复制BTN.关于关于Onclick = () => {.关于关于Onclick = () => {
+  如果 (!“改变”(统一资源Locator)) 返回;如果 (!文件全球资源定位器(Unified 资源定位器)) 返回;如果 (!“改变”(统一资源Locator)) 返回;如果 (!文件全球资源定位器(Unified 资源定位器)) 返回;
+  领航员.剪贴板.写文本(文件全球资源定位器(制服资源 探测器)).然后(() => 警报("已复制链接"));领航员.剪贴板.写文本(文件全球资源定位器(制服资源 探测器)).然后(() => 警报("已复制链接"));
+};
+
+["拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(于,则 => 拖放区.使用使用 addEventListener(于,则, t => t.预防故障()));"拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(E的 => 拖放区.使用 addEventListener(E的, t => t.预防故障()));"拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(E的 => 拖放区.使用 addEventListener(E的, t => t.预防故障()));"拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(E的 => 拖放区.使用 addEventListener(E的, t => t.预防故障()));"拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(于,则 => 拖放区.使用使用 addEventListener(于,则, t => t.预防故障()));"拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(E的 => 拖放区.使用 addEventListener(E的, t => t.预防故障()));"拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(E的 => 拖放区.使用 addEventListener(E的, t => t.预防故障()));"拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(E的 => 拖放区.使用 addEventListener(E的, t => t.预防故障()));
+拖放区.使用 addEventListener(“下降”, E的 => {.使用 addEventListener(“下降”, E的 => {.使用 addEventListener(“下降”, E的 => {.使用 addEventListener(“下降”, E的 => {
+  文件输入.文件 = E的.数据传输.文件;文件输入.文件 = 于,则.数据传输.文件;文件输入.文件 = E的.数据传输.文件;文件输入.文件 = 于,则.数据传输.文件;
+  文件输入.调度事件(新的 事件(“改变”));
 });
 </script>
-
 </body>
 </html>
+
