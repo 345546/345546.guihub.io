@@ -172,16 +172,18 @@
                 </div>
                 
                 <!-- 拖拽上传区域 -->
-                <div id="drop-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-6 cursor-pointer hover:border-primary transition-colors duration-300">
-                    <div class="flex flex-col items-center justify-center">
+                <div id="drop-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-6 cursor-pointer hover:border-primary transition-colors duration-300 relative">
+                    <div class="flex flex-col items-center justify-center relative z-10">
                         <i class="fa fa-cloud-upload text-5xl text-gray-400 mb-4"></i>
                         <p class="text-lg font-medium mb-2">拖拽文件到此处或点击上传</p>
                         <p class="text-sm text-gray-500 mb-4">支持各种文件格式，单个文件最大 500MB</p>
-                        <label class="btn-primary cursor-pointer">
+                        <label for="file-input" class="btn-primary cursor-pointer">
                             <input type="file" id="file-input" class="hidden" multiple>
                             <span>选择文件</span>
                         </label>
                     </div>
+                    <!-- 透明的文件输入覆盖整个区域 -->
+                    <input type="file" id="hidden-file-input" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" multiple>
                 </div>
                 
                 <!-- 上传文件列表 -->
@@ -608,18 +610,48 @@
                 if (e.target === previewModal) closePreviewModalFunc();
             });
             
-            // 拖拽上传区域
+            // 初始化拖拽上传区域
+            console.log('初始化文件上传功能...');
+            
+            // 获取所有文件输入元素
+            const fileInput = document.getElementById('file-input');
+            const hiddenFileInput = document.getElementById('hidden-file-input');
+            
+            // 确保元素存在
+            if (!dropArea || !fileInput || !hiddenFileInput) {
+                console.error('上传区域或文件输入元素未找到！');
+                return;
+            }
+            
+            console.log('找到所有必要的DOM元素');
+            
+            // 为两个文件输入框添加相同的事件处理
+            const handleFileInputChange = (e) => {
+                const files = e.target.files;
+                console.log(`文件输入框变化，选择了 ${files.length} 个文件`);
+                if (files.length > 0) {
+                    handleFiles(files);
+                }
+            };
+            
+            fileInput.addEventListener('change', handleFileInputChange);
+            hiddenFileInput.addEventListener('change', handleFileInputChange);
+            
+            console.log('文件输入框事件已绑定');
+            
+            // 拖拽上传区域事件
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 dropArea.addEventListener(eventName, preventDefaults, false);
-                console.log(`事件 ${eventName} 已绑定`);
+                console.log(`拖拽事件 ${eventName} 已绑定到上传区域`);
             });
             
             function preventDefaults(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('阻止默认行为');
+                console.log(`阻止默认的 ${e.type} 行为`);
             }
             
+            // 高亮效果
             ['dragenter', 'dragover'].forEach(eventName => {
                 dropArea.addEventListener(eventName, highlight, false);
             });
@@ -630,34 +662,42 @@
             
             function highlight() {
                 dropArea.classList.add('border-primary');
-                console.log('高亮拖拽区域');
+                console.log('上传区域已高亮');
             }
             
             function unhighlight() {
                 dropArea.classList.remove('border-primary');
-                console.log('取消高亮拖拽区域');
+                console.log('上传区域已取消高亮');
             }
             
+            // 处理拖放文件
             dropArea.addEventListener('drop', handleDrop, false);
             
             function handleDrop(e) {
+                console.log('检测到文件拖放');
                 const dt = e.dataTransfer;
+                if (!dt) {
+                    console.error('数据传输对象未找到');
+                    return;
+                }
+                
                 const files = dt.files;
                 console.log(`拖拽了 ${files.length} 个文件`);
-                handleFiles(files);
+                if (files.length > 0) {
+                    handleFiles(files);
+                }
             }
             
-            // 文件输入框变化事件
-            fileInput.addEventListener('change', () => {
-                console.log(`选择了 ${fileInput.files.length} 个文件`);
-                handleFiles(fileInput.files);
-            });
+            // 确保点击标签也能打开文件选择
+            const fileInputLabel = dropArea.querySelector('label');
+            if (fileInputLabel) {
+                fileInputLabel.addEventListener('click', (e) => {
+                    console.log('点击了选择文件标签');
+                    // 不阻止默认行为，让浏览器处理标签点击
+                });
+            }
             
-            // 点击拖拽区域也可以选择文件
-            dropArea.addEventListener('click', () => {
-                console.log('点击了拖拽区域');
-                fileInput.click();
-            });
+            console.log('文件上传功能初始化完成');
             
             // 取消上传按钮
             cancelUpload.addEventListener('click', () => {
@@ -814,68 +854,107 @@
 
         // 处理选择的文件
         function handleFiles(files) {
-            if (files.length === 0) {
-                console.log('没有选择文件');
+            console.log('进入handleFiles函数');
+            
+            // 检查参数
+            if (!files || !files.length) {
+                console.log('没有选择文件或files参数无效');
                 return;
             }
             
             console.log(`开始处理 ${files.length} 个文件`);
             
-            // 显示上传列表
-            uploadList.classList.remove('hidden');
-            uploadItems.innerHTML = '';
-            
-            // 创建文件项
-            Array.from(files).forEach((file, index) => {
-                console.log(`处理文件 ${index + 1}: ${file.name}`);
-                
-                const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-                item.dataset.filename = file.name;
-                
-                // 获取文件类型图标
-                const fileExtension = file.name.split('.').pop().toLowerCase();
-                const fileIcon = fileTypeIcons[fileExtension] || fileTypeIcons.default;
-                
-                item.innerHTML = `
-                    <div class="flex items-center">
-                        <i class="fa ${fileIcon} text-gray-500 mr-3"></i>
-                        <div>
-                            <p class="font-medium">${file.name}</p>
-                            <p class="text-sm text-gray-500">${formatFileSize(file.size)}</p>
-                        </div>
-                    </div>
-                    <button class="delete-file-btn text-red-500 hover:text-red-700">
-                        <i class="fa fa-times"></i>
-                    </button>
-                `;
-                uploadItems.appendChild(item);
-                
-                // 设置文件名到表单（如果是单个文件）
-                if (files.length === 1) {
-                    document.getElementById('file-title').value = file.name;
+            try {
+                // 确保DOM元素存在
+                if (!uploadList || !uploadItems || !continueUpload) {
+                    console.error('上传列表相关DOM元素未找到！');
+                    return;
                 }
-            });
-            
-            // 显示继续按钮
-            continueUpload.classList.remove('hidden');
-            
-            // 删除文件项的事件监听
-            uploadItems.querySelectorAll('.delete-file-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const fileItem = e.target.closest('.flex.items-center.justify-between');
-                    console.log(`删除文件: ${fileItem.dataset.filename}`);
-                    fileItem.remove();
+                
+                // 显示上传列表
+                uploadList.classList.remove('hidden');
+                uploadItems.innerHTML = '';
+                console.log('已清空上传列表并显示');
+                
+                // 创建文件项
+                const filesArray = Array.from(files);
+                console.log(`转换为数组，共有 ${filesArray.length} 个文件`);
+                
+                filesArray.forEach((file, index) => {
+                    console.log(`处理文件 ${index + 1}: ${file.name}, 大小: ${file.size} 字节`);
                     
-                    // 如果没有文件了，隐藏相关元素
-                    if (uploadItems.children.length === 0) {
-                        uploadList.classList.add('hidden');
-                        continueUpload.classList.add('hidden');
+                    // 创建文件项元素
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-2';
+                    item.dataset.filename = file.name;
+                    
+                    // 获取文件类型图标
+                    const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'default';
+                    const fileIcon = fileTypeIcons[fileExtension] || fileTypeIcons.default;
+                    console.log(`文件扩展名: ${fileExtension}, 使用图标: ${fileIcon}`);
+                    
+                    // 设置文件项内容
+                    item.innerHTML = `
+                        <div class="flex items-center">
+                            <i class="fa ${fileIcon} text-xl mr-3"></i>
+                            <div>
+                                <p class="font-medium" title="${file.name}">${file.name}</p>
+                                <p class="text-sm text-gray-500">${formatFileSize(file.size)}</p>
+                            </div>
+                        </div>
+                        <button class="delete-file-btn text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    `;
+                    
+                    // 添加到列表
+                    uploadItems.appendChild(item);
+                    console.log(`文件项已添加到DOM: ${file.name}`);
+                    
+                    // 设置文件名到表单（如果是单个文件）
+                    if (filesArray.length === 1) {
+                        const fileTitleInput = document.getElementById('file-title');
+                        if (fileTitleInput) {
+                            fileTitleInput.value = file.name;
+                            console.log(`已设置表单文件名为: ${file.name}`);
+                        } else {
+                            console.error('文件标题输入框未找到！');
+                        }
                     }
                 });
-            });
-            
-            console.log('文件处理完成');
+                
+                // 显示继续按钮
+                continueUpload.classList.remove('hidden');
+                console.log('已显示继续上传按钮');
+                
+                // 删除文件项的事件监听
+                const deleteButtons = uploadItems.querySelectorAll('.delete-file-btn');
+                console.log(`找到 ${deleteButtons.length} 个删除按钮`);
+                
+                deleteButtons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // 防止冒泡
+                        const fileItem = e.target.closest('.flex.items-center.justify-between');
+                        if (fileItem) {
+                            const fileName = fileItem.dataset.filename;
+                            console.log(`删除文件: ${fileName}`);
+                            fileItem.remove();
+                            
+                            // 如果没有文件了，隐藏相关元素
+                            if (uploadItems.children.length === 0) {
+                                uploadList.classList.add('hidden');
+                                continueUpload.classList.add('hidden');
+                                console.log('所有文件已删除，隐藏上传列表和继续按钮');
+                            }
+                        }
+                    });
+                });
+                
+                console.log('文件处理完成');
+            } catch (error) {
+                console.error('处理文件时发生错误:', error);
+                alert('处理文件时发生错误，请重试');
+            }
         }
 
         // 格式化文件大小
