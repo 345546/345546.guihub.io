@@ -3,182 +3,490 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>本地文件共享</title>
+    <title>云盘 - 极速文件共享</title>
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-        body { background: #f5f5f5; padding: 10px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .logo { font-size: 20px; font-weight: bold; }
-        .btn { 
-            padding: 8px 16px; 
-            background: #007aff; 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --secondary: #ec4899;
+            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 16px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* 导航栏 */
+        nav {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 22px;
+            color: var(--primary);
+        }
+
+        .logo i {
+            font-size: 28px;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* 按钮样式 */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             font-size: 14px;
         }
-        .btn:active { opacity: 0.85; }
-        .upload-area { 
-            border: 2px dashed #007aff; 
-            border-radius: 12px; 
-            padding: 30px 20px; 
-            text-align: center; 
-            background: white; 
-            margin-bottom: 20px;
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
         }
-        .upload-area input { display: none; }
-        .upload-area label { color: #007aff; cursor: pointer; font-weight: 600; }
-        .file-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        .file-item { 
-            background: white; 
-            border-radius: 10px; 
-            padding: 12px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+
+        .btn-primary:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
-        .file-name { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .file-size { font-size: 12px; color: #888; }
-        .file-actions { display: flex; gap: 8px; }
-        .file-actions button { 
-            flex: 1; 
-            padding: 6px; 
-            border: none; 
-            border-radius: 6px; 
-            cursor: pointer;
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        /* 上传区域 */
+        .upload-section {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 48px 24px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            margin-bottom: 32px;
+            border: 2px dashed var(--primary-light);
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .upload-icon {
+            font-size: 64px;
+            color: var(--primary);
+            margin-bottom: 24px;
+        }
+
+        .upload-section h2 {
+            margin-bottom: 12px;
+            font-size: 24px;
+        }
+
+        .upload-section p {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        /* 文件列表 */
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 32px 0 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .files-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .file-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .file-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .file-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--bg-gradient);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-size {
             font-size: 12px;
+            color: var(--text-secondary);
         }
-        .download-btn { background: #34c759; color: white; }
-        .delete-btn { background: #ff3b30; color: white; }
-        .empty { text-align: center; padding: 40px 20px; color: #888; }
+
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .file-actions button {
+            flex: 1;
+            padding: 8px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .file-actions button:hover {
+            opacity: 0.9;
+        }
+
+        .btn-download {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 8px;
+        }
+
+        /* 响应式适配 */
+        @media (max-width: 768px) {
+            .files-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            nav {
+                flex-direction: column;
+                gap: 16px;
+            }
+            
+            .upload-section {
+                padding: 32px 16px;
+            }
+        }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="header">
-        <div class="logo">本地文件共享</div>
-        <button class="btn" onclick="clearAllFiles()">清空全部</button>
-    </div>
+    <div class="container">
+        <nav>
+            <div class="logo">
+                <i class="fas fa-cloud-arrow-up"></i>
+                <span>极速云盘</span>
+            </div>
+            <div class="nav-actions">
+                <button class="btn btn-outline" onclick="clearAllFiles()">
+                    <i class="fas fa-trash-alt"></i> 清空全部
+                </button>
+            </div>
+        </nav>
 
-    <div class="upload-area">
-        <input type="file" id="fileInput" multiple onchange="handleFileUpload(event)">
-        <label for="fileInput">点击上传文件</label>
-        <p style="margin-top: 10px; font-size: 12px; color: #666;">支持多文件，手机端直接选择</p>
-    </div>
+        <div class="upload-section" id="dropZone">
+            <div class="upload-icon">
+                <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+            <h2>拖拽文件或点击上传</h2>
+            <p>支持图片、视频、文档等所有类型文件，GitHub 安全存储</p>
+            <label for="fileInput" class="btn btn-primary">
+                <i class="fas fa-folder-open"></i> 选择文件
+            </label>
+            <input type="file" id="fileInput" multiple hidden>
+        </div>
 
-    <div id="fileListContainer" class="file-list"></div>
+        <h2 class="section-title"><i class="fas fa-folder-open"></i> 我的文件</h2>
+        <div id="fileList" class="files-grid"></div>
+    </div>
 
     <script>
-        // 存储文件数据
-        let fileData = JSON.parse(localStorage.getItem('fileShare')) || [];
+        // 初始化本地存储库 (IndexedDB 封装)
+        localforage.config({
+            name: 'FileShareDB',
+            version: 1.0,
+            storeName: 'files',
+            description: '存储用户上传的文件数据'
+        });
 
-        // 初始化：加载已保存的文件
-        renderFileList();
+        let fileList = [];
 
-        // 处理文件上传
-        function handleFileUpload(event) {
+        // 页面加载时读取数据
+        document.addEventListener('DOMContentLoaded', loadFiles);
+
+        // 文件上传输入监听
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+        // 拖放功能实现
+        const dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.background = 'rgba(255, 255, 255, 0.95)';
+            dropZone.style.borderColor = 'var(--primary)';
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.background = 'var(--card-bg)';
+            dropZone.style.borderColor = 'var(--primary-light)';
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.background = 'var(--card-bg)';
+            dropZone.style.borderColor = 'var(--primary-light)';
+            if (e.dataTransfer.files.length) {
+                handleFileSelect({ target: { files: e.dataTransfer.files } });
+            }
+        });
+
+        dropZone.addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+
+        // 处理文件选择
+        async function handleFileSelect(event) {
             const files = event.target.files;
             if (!files.length) return;
 
-            for (let file of files) {
-                // 读取文件为 Base64 (纯前端存储方案)
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const fileInfo = {
-                        name: file.name,
-                        size: formatFileSize(file.size),
-                        type: file.type,
-                        data: e.target.result,
-                        id: Date.now() + Math.random().toString(36).slice(2)
-                    };
-                    fileData.push(fileInfo);
-                    saveToStorage();
-                    renderFileList();
-                };
-                reader.readAsDataURL(file);
+            for (const file of files) {
+                await uploadFile(file);
             }
-            // 清空输入，允许重复选择
-            event.target.value = '';
+            loadFiles(); // 重新加载列表
         }
 
-        // 渲染文件列表
-        function renderFileList() {
-            const container = document.getElementById('fileListContainer');
-            if (!fileData.length) {
-                container.innerHTML = '<div class="empty">暂无文件，上传后即可显示</div>';
-                return;
-            }
+        // 上传文件逻辑 (转为 Base64 存储)
+        async function uploadFile(file) {
+            try {
+                // 读取文件为 Base64 字符串
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
 
-            container.innerHTML = fileData.map(item => `
-                <div class="file-item">
-                    <div class="file-name">${item.name}</div>
-                    <div class="file-size">${item.size}</div>
-                    <div class="file-actions">
-                        <button class="download-btn" onclick="downloadFile('${item.id}')">下载</button>
-                        <button class="delete-btn" onclick="deleteFile('${item.id}')">删除</button>
+                // 存储元数据和 Base64 内容
+                const fileMeta = {
+                    id: Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+                    name: file.name,
+                    size: formatFileSize(file.size),
+                    type: file.type || 'application/octet-stream',
+                    data: base64,
+                    uploadTime: new Date().toLocaleString()
+                };
+
+                // 保存到 IndexedDB
+                await localforage.setItem(fileMeta.id, fileMeta);
+            } catch (error) {
+                console.error('上传失败:', error);
+                alert('文件过大或存储失败，请重试');
+            }
+        }
+
+        // 加载文件列表
+        async function loadFiles() {
+            const fileListEl = document.getElementById('fileList');
+            fileList = [];
+
+            try {
+                // 遍历读取所有存储的文件
+                await localforage.iterate((value) => {
+                    fileList.push(value);
+                });
+
+                // 按时间倒序排列
+                fileList.sort((a, b) => b.id.localeCompare(a.id));
+
+                if (fileList.length === 0) {
+                    fileListEl.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-folder-open"></i>
+                            <h3>暂无文件</h3>
+                            <p>上传您的第一个文件开始分享吧！</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // 渲染文件卡片
+                fileListEl.innerHTML = fileList.map(file => `
+                    <div class="file-card">
+                        <div class="file-header">
+                            <div class="file-icon">
+                                ${getIconByType(file.type)}
+                            </div>
+                            <div class="file-info">
+                                <div class="file-name" title="${file.name}">${file.name}</div>
+                                <div class="file-size">${file.size} · ${file.uploadTime}</div>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn-download" onclick="downloadFile('${file.id}')">
+                                <i class="fas fa-download"></i> 下载
+                            </button>
+                            <button class="btn-delete" onclick="deleteFile('${file.id}')">
+                                <i class="fas fa-times"></i> 删除
+                            </button>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+
+            } catch (error) {
+                console.error('加载失败:', error);
+                fileListEl.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>加载失败</h3></div>';
+            }
         }
 
         // 下载文件
-        function downloadFile(id) {
-            const item = fileData.find(f => f.id === id);
-            if (!item) return;
+        async function downloadFile(id) {
+            const file = await localforage.getItem(id);
+            if (!file) return;
 
-            // 转换 Base64 为 Blob
-            const blob = dataURLtoBlob(item.data);
-            const url = URL.createObjectURL(blob);
-
-            // 创建下载链接并触发
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = item.name;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            // 创建下载链接
+            const link = document.createElement('a');
+            link.href = file.data;
+            link.download = file.name;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         // 删除文件
-        function deleteFile(id) {
-            fileData = fileData.filter(f => f.id !== id);
-            saveToStorage();
-            renderFileList();
+        async function deleteFile(id) {
+            if (!confirm('确定要删除此文件吗？')) return;
+            await localforage.removeItem(id);
+            loadFiles();
         }
 
         // 清空所有文件
-        function clearAllFiles() {
-            if (!confirm('确定要删除所有文件吗？此操作不可恢复')) return;
-            fileData = [];
-            saveToStorage();
-            renderFileList();
+        async function clearAllFiles() {
+            if (!confirm('确定要删除所有文件吗？此操作不可恢复！')) return;
+            await localforage.clear();
+            fileList = [];
+            loadFiles();
         }
 
-        // 辅助：保存到本地存储
-        function saveToStorage() {
-            localStorage.setItem('fileShare', JSON.stringify(fileData));
-        }
-
-        // 辅助：格式化文件大小
+        // 辅助工具：格式化文件大小
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 B';
             const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i];
         }
 
-        // 辅助：Base64 转 Blob
-        function dataURLtoBlob(dataurl) {
-            const arr = dataurl.split(',');
-            const mime = arr[0].match(/:(.*?);/)[1];
-            const bstr = atob(arr[1]);
-            let n = bstr.length;
-            const u8arr = new Uint8Array(n);
-            while (n--) u8arr[n] = bstr.charCodeAt(n);
-            return new Blob([u8arr], { type: mime });
+        // 辅助工具：根据文件类型显示图标
+        function getIconByType(type) {
+            if (type.includes('image')) return '<i class="fas fa-file-image"></i>';
+            if (type.includes('video')) return '<i class="fas fa-file-video"></i>';
+            if (type.includes('audio')) return '<i class="fas fa-file-audio"></i>';
+            if (type.includes('pdf')) return '<i class="fas fa-file-pdf"></i>';
+            if (type.includes('text')) return '<i class="fas fa-file-alt"></i>';
+            if (type.includes('zip') || type.includes('rar')) return '<i class="fas fa-file-archive"></i>';
+            return '<i class="fas fa-file"></i>';
         }
     </script>
 </body>
