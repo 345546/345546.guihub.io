@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>文件上传分享页</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
+    }
+    body {
+      background: #f6f8fa;
+      padding: 30px 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .online {
+      background: #0969da;
+      color: white;
+      padding: 14px 20px;
+      border-radius: 10px;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 16px;
+    }
+    .box {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    h2 {
+      margin-bottom: 20px;
+      color: #24292f;
+      text-align: center;
+    }
+    .upload {
+      border: 2px dashed #d1d9e0;
+      border-radius: 10px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .upload:hover {
+      border-color: #0969da;
+    }
+    #file {
+      display: none;
+    }
+    .btn {
+      background: #0969da;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      cursor: pointer;
+    }
+    .btn:disabled {
+      background: #8c959f;
+      cursor: not-allowed;
+    }
+    .down {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f6f8fa;
+      border-radius: 8px;
+      word-break: break-all;
+      display: none;
+    }
+    a {
+      color: #0969da;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- 在线人数（免费真实统计） -->
+<div class="online" id="online">加载在线人数中...</div>
+
+<div class="box">
+  <h2>文件上传 & 临时下载</h2>
+  
+  <label class="upload" id="drop">
+    <p>点击或拖拽文件到此处上传</p>
+    <input type="file" id="file">
+  </label>
+
+  <button class="btn" id="copy" disabled>复制下载链接</button>
+  <div class="down" id="result"></div>
+</div>
+
+<script>
+// 在线人数（免费第三方，GitHub Pages 可用）
+fetch('https://count.kang-gg.com/count?url=' + encodeURIComponent(window.location.hostname))
+  .then(res => res.text())
+  .then(num => {
+    document.getElementById('online').innerText = '当前在线人数：' + num + ' 人';
+  })
+  .catch(() => {
+    document.getElementById('online').innerText = '当前在线人数：统计服务加载中';
+  });
+
+// 文件上传 & 下载
+const fileInput = document.getElementById('file');
+const result = document.getElementById('result');
+const copyBtn = document.getElementById('copy');
+let fileURL = null;
+
+fileInput.onchange = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (fileURL) URL.revokeObjectURL(fileURL);
+  fileURL = URL.createObjectURL(file);
+  result.innerHTML = `文件名：${file.name}<br><a href="${fileURL}" download="${file.name}">点此下载</a>`;
+  result.style.display = 'block';
+  copyBtn.disabled = false;
+};
+
+copyBtn.onclick = function() {
+  if (!fileURL) return;
+  navigator.clipboard.writeText(fileURL).then(() => {
+    alert('链接已复制！');
+  });
+};
+
+// 拖拽上传
+const drop = document.getElementById('drop');
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+  drop.addEventListener(evt, e => e.preventDefault());
+});
+drop.addEventListener('drop', e => {
+  fileInput.files = e.dataTransfer.files;
+  fileInput.dispatchEvent(new Event('change'));
+});
+</script>
+
+</body>
+</html>
