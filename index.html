@@ -1,83 +1,666 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>文件分享页</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif}
-body{background:#f6f8fa;padding:30px 20px;max-width:800px;margin:0 auto}
-.online{background:#0969da;color:white;padding:14px 20px;border-radius:10px;text-align:center;margin-bottom:30px}
-.box{background:white;border-radius:12px;padding:30px;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
-h2{margin-bottom:20px;text-align:center}
-.upload{border:2px dashed #d1d9e0;border-radius:10px;padding:40px 20px;text-align:center;cursor:pointer}
-.upload:hover{border-color:#0969da}
-#file{display:none}
-.btn{background:#0969da;color:white;border:none;padding:10px 20px;border-radius:8px;margin-top:20px;cursor:pointer}
-.btn:disabled{background:#8c959f;cursor:not-allowed}
-.down{margin-top:20px;padding:15px;background:#f6f8fa;border-radius:8px;word-break:break-all;display:none}
-a{color:#0969da}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>✨ HashDrop · 链接即文件</title>
+    <!-- 柔和现代字体 & 图标库 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 10% 30%, #1e2b3f, #0b121c);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            color: #eef4ff;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* 主卡片 —— 深邃玻璃效果 */
+        .glass-panel {
+            max-width: 680px;
+            width: 100%;
+            background: rgba(18, 28, 44, 0.65);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border-radius: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 30px 60px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+            padding: 2.2rem 2rem;
+            transition: all 0.3s ease;
+        }
+
+        /* 标题区 */
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        .brand i {
+            font-size: 2.2rem;
+            background: linear-gradient(145deg, #a7c0e5, #5f8ec9);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            filter: drop-shadow(0 4px 6px rgba(0,20,50,0.6));
+        }
+        .brand h1 {
+            font-weight: 600;
+            font-size: 2rem;
+            letter-spacing: -0.02em;
+            background: linear-gradient(to right, #f0f5ff, #b3ccff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .sub {
+            color: #9bb5d9;
+            font-weight: 400;
+            font-size: 0.95rem;
+            margin-top: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(255,255,255,0.02);
+            padding: 0.4rem 1rem;
+            border-radius: 40px;
+            width: fit-content;
+            border: 1px solid rgba(255,255,255,0.02);
+        }
+
+        /* 上传区域 */
+        .upload-area {
+            background: rgba(8, 18, 30, 0.5);
+            border-radius: 2.2rem;
+            border: 2px dashed rgba(140, 180, 255, 0.25);
+            padding: 2.8rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border 0.2s, background 0.2s, transform 0.1s;
+            margin-bottom: 1.8rem;
+            position: relative;
+        }
+        .upload-area:hover {
+            border-color: rgba(140, 180, 255, 0.7);
+            background: rgba(15, 30, 50, 0.6);
+        }
+        .upload-area.dragover {
+            border-color: #7aa9ff;
+            background: rgba(40, 80, 140, 0.35);
+            transform: scale(1.01);
+            box-shadow: 0 0 25px rgba(90, 160, 255, 0.25);
+        }
+        .upload-icon {
+            font-size: 4rem;
+            color: #7fa3d9;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+        .upload-text {
+            font-size: 1.3rem;
+            font-weight: 500;
+            margin-bottom: 0.4rem;
+        }
+        .upload-hint {
+            font-size: 0.9rem;
+            color: #90a9c9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .upload-hint i {
+            font-size: 0.8rem;
+        }
+        .file-input {
+            display: none;
+        }
+
+        /* 文件卡片 (用于显示已上传/待下载) */
+        .file-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 2rem;
+            padding: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 15px 30px -15px black;
+            margin-bottom: 1.8rem;
+            backdrop-filter: blur(8px);
+        }
+        .file-info-row {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+        }
+        .file-icon {
+            font-size: 2.5rem;
+            color: #7aa9ff;
+            background: rgba(20, 40, 70, 0.5);
+            width: 4rem;
+            height: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 1.8rem;
+        }
+        .file-details {
+            flex: 1;
+        }
+        .file-name {
+            font-weight: 600;
+            font-size: 1.2rem;
+            word-break: break-word;
+            padding-right: 0.5rem;
+        }
+        .file-meta {
+            display: flex;
+            gap: 1.2rem;
+            margin-top: 0.3rem;
+            color: #a2b9dd;
+            font-size: 0.9rem;
+        }
+        .file-meta i {
+            margin-right: 0.3rem;
+            font-size: 0.8rem;
+            color: #5f8ec9;
+        }
+
+        /* 按钮组 */
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin-top: 1.2rem;
+            align-items: center;
+        }
+        .btn {
+            background: rgba(30, 50, 80, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: #e2ecff;
+            padding: 0.7rem 1.5rem;
+            border-radius: 3rem;
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .btn i {
+            font-size: 1rem;
+        }
+        .btn-primary {
+            background: linear-gradient(145deg, #2b4b7a, #1c3552);
+            border: 1px solid #4670b0;
+            color: white;
+            box-shadow: 0 6px 14px rgba(0, 40, 100, 0.5);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(145deg, #325a8f, #23416b);
+            border-color: #6e96dc;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(120, 170, 255, 0.3);
+        }
+        .btn-outline:hover {
+            background: rgba(40, 70, 130, 0.3);
+            border-color: rgba(120, 170, 255, 0.8);
+        }
+        .btn-danger {
+            background: rgba(120, 40, 60, 0.3);
+            border-color: rgba(255, 120, 120, 0.2);
+        }
+        .btn-danger:hover {
+            background: rgba(160, 50, 70, 0.5);
+            border-color: #ff8888;
+        }
+
+        /* 链接分享框 */
+        .share-url {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3rem;
+            padding: 0.3rem 0.3rem 0.3rem 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-top: 1.2rem;
+        }
+        .share-url span {
+            font-size: 0.9rem;
+            color: #bfd3f0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 280px;
+        }
+        .copy-btn {
+            background: rgba(255,255,255,0.05);
+            border: none;
+            color: #ccdeff;
+            padding: 0.5rem 1.3rem;
+            border-radius: 3rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid rgba(255,255,255,0.02);
+        }
+        .copy-btn:hover {
+            background: rgba(70, 130, 220, 0.4);
+            color: white;
+        }
+
+        .warning-note {
+            background: rgba(255, 180, 60, 0.08);
+            border-left: 3px solid #f9a826;
+            padding: 0.8rem 1.2rem;
+            border-radius: 1.5rem;
+            color: #f5d5a0;
+            font-size: 0.85rem;
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+            margin: 1.2rem 0 0.5rem;
+        }
+        .warning-note i {
+            color: #f9a826;
+            font-size: 1.1rem;
+        }
+
+        .footer-note {
+            margin-top: 2rem;
+            text-align: center;
+            color: #7c93b5;
+            font-size: 0.8rem;
+            border-top: 1px solid rgba(255,255,255,0.02);
+            padding-top: 1.5rem;
+        }
+        .footer-note a {
+            color: #b5ceff;
+            text-decoration: none;
+        }
+
+        /* 状态切换 */
+        .hidden {
+            display: none !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
-
 <body>
-<div class="online" id="online">加载在线人数...</div>
+    <div class="glass-panel">
+        <!-- 品牌区 -->
+        <div class="brand">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <h1>HashDrop</h1>
+        </div>
+        <div class="sub">
+            <i class="fas fa-link"></i> 文件存入链接 · 分享即下载
+        </div>
 
-<div class="box">
-  <h2>文件上传 & 下载</h2>
-  <label class="upload" id="dropArea">
-    <p>点击或拖拽文件上传</p>
-    <input type="file" id="file">
-  </label>
-  <button class="btn" id="copyBtn" disabled>复制下载链接</button>
-  <div class="down" id="result"></div>
-</div>
+        <!-- 主状态区域: 上传/下载动态切换 -->
+        <div id="uploadSection" class="fade-in">
+            <!-- 上传卡片 (默认可见) -->
+            <div id="uploadArea" class="upload-area">
+                <i class="fas fa-file-arrow-up upload-icon"></i>
+                <div class="upload-text">点击或拖拽文件</div>
+                <div class="upload-hint">
+                    <i class="fas fa-shield-alt"></i> 最大 2 MB · 纯前端处理
+                </div>
+                <input type="file" id="fileInput" class="file-input" />
+            </div>
+            <!-- 说明小贴士 -->
+            <div class="warning-note">
+                <i class="fas fa-info-circle"></i>
+                <span>文件将编码进链接地址（URL片段）。复制完整链接给朋友，对方打开就能下载。适合图片、文档等小文件。</span>
+            </div>
+        </div>
 
-<script>
-// ======================================
-// 稳定在线人数（免费稳定不卡顿，GitHub专用）
-// ======================================
-async function loadOnline() {
-  try {
-    const r = await fetch("https://api.lhlyun.com/online", { signal: AbortSignal.timeout(3000) });
-    const t = await r.text();
-    document.getElementById("online").textContent = "当前在线：" + t + " 人";
-  } catch (e) {
-    document.getElementById("online").textContent = "当前在线：加载失败（不影响上传下载）";
-  }
-}
-loadOnline();
+        <!-- 下载/管理卡片 (初始隐藏) -->
+        <div id="fileCard" class="file-card hidden fade-in">
+            <div class="file-info-row">
+                <div class="file-icon" id="fileIcon"><i class="fas fa-file"></i></div>
+                <div class="file-details">
+                    <div class="file-name" id="fileName">example.pdf</div>
+                    <div class="file-meta">
+                        <span><i class="fas fa-weight-hanging"></i> <span id="fileSize">0 KB</span></span>
+                        <span><i class="fas fa-file-lines"></i> <span id="fileType">application</span></span>
+                    </div>
+                </div>
+            </div>
 
-// ======================================
-// 文件上传 + 下载 + 拖拽
-// ======================================
-常数 文件输入 = 文件.getElementById("文件");
-常数 结果 = 文件.getElementById("结果");
-常数 copyBtn = 文件.getElementById(" copyBtn ");
-常数 拖放区 = 文件.getElementById(" dropArea ");
-让 文件Url;
+            <div class="button-group">
+                <button class="btn btn-primary" id="downloadBtn"><i class="fas fa-download"></i> 下载文件</button>
+                <button class="btn btn-outline" id="copyLinkBtn"><i class="fas fa-copy"></i> 复制链接</button>
+                <button class="btn btn-danger" id="resetBtn"><i class="fas fa-trash-alt"></i> 清空</button>
+            </div>
 
-文件输入.addEventListener(“改变”, () => {
-  常数 f = 文件输入.文件[0];
-  如果 (!f) 返回;
-  如果 (文件Url) 统一资源定位器.revokeObjectURL(文件Url);
-  文件Url = 统一资源定位器.createObjectURL(f);
-  结果.innerHTML = `文件名：${f.名字}< br><a href= "${文件Url}"下载= "${f.名字}">点此下载</a > `;
-  结果.风格.显示 = "阻止";
-  copyBtn.有缺陷的 = 错误的;
-});
+            <!-- 分享链接显示条 -->
+            <div class="share-url" id="shareUrlContainer">
+                <span id="shareUrlText">#...</span>
+                <button class="copy-btn" id="miniCopyBtn"><i class="fas fa-clipboard"></i> 复制</button>
+            </div>
+            <div class="warning-note" style="margin-top: 0.8rem;">
+                <i class="fas fa-lightbulb"></i>
+                <span>链接已包含文件数据。直接发送给好友即可，对方打开页面会自动识别。</span>
+            </div>
+        </div>
 
-复制BTN.关于关于Onclick = () => {.关于关于Onclick = () => {
-  如果 (!“改变”(统一资源Locator)) 返回;如果 (!文件全球资源定位器(Unified 资源定位器)) 返回;如果 (!“改变”(统一资源Locator)) 返回;如果 (!文件全球资源定位器(Unified 资源定位器)) 返回;
-  领航员.剪贴板.写文本(文件全球资源定位器(制服资源 探测器)).然后(() => 警报("已复制链接"));领航员.剪贴板.写文本(文件全球资源定位器(制服资源 探测器)).然后(() => 警报("已复制链接"));
-};
+        <!-- 底部开源信息 -->
+        <div class="footer-note">
+            ⚡ 纯静态 · 文件只存在 URL 中 · <i class="fas fa-github"></i> GitHub 托管
+        </div>
+    </div>
 
-["拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(于,则 => 拖放区.使用使用 addEventListener(于,则, t => t.预防故障()));"拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(E的 => 拖放区.使用 addEventListener(E的, t => t.预防故障()));"拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(E的 => 拖放区.使用 addEventListener(E的, t => t.预防故障()));"拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(E的 => 拖放区.使用 addEventListener(E的, t => t.预防故障()));"拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(于,则 => 拖放区.使用使用 addEventListener(于,则, t => t.预防故障()));"拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(E的 => 拖放区.使用 addEventListener(E的, t => t.预防故障()));"拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(E的 => 拖放区.使用 addEventListener(E的, t => t.预防故障()));"拖动输入", “德拉戈夫”, “请假”, “下降”].为每一个(E的 => 拖放区.使用 addEventListener(E的, t => t.预防故障()));
-拖放区.使用 addEventListener(“下降”, E的 => {.使用 addEventListener(“下降”, E的 => {.使用 addEventListener(“下降”, E的 => {.使用 addEventListener(“下降”, E的 => {
-  文件输入.文件 = E的.数据传输.文件;文件输入.文件 = 于,则.数据传输.文件;文件输入.文件 = E的.数据传输.文件;文件输入.文件 = 于,则.数据传输.文件;
-  文件输入.调度事件(新的 事件(“改变”));
-});
-</script>
+    <script>
+        (function() {
+            // DOM 元素
+            const uploadSection = document.getElementById('uploadSection');
+            const fileCard = document.getElementById('fileCard');
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const fileNameSpan = document.getElementById('fileName');
+            const fileSizeSpan = document.getElementById('fileSize');
+            const fileTypeSpan = document.getElementById('fileType');
+            const fileIcon = document.getElementById('fileIcon');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const copyLinkBtn = document.getElementById('copyLinkBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const shareUrlText = document.getElementById('shareUrlText');
+            const miniCopyBtn = document.getElementById('miniCopyBtn');
+
+            // 当前文件信息 (null 或者对象)
+            let currentFileInfo = null;
+
+            // 工具: 格式化字节
+            function formatBytes(bytes, decimals = 2) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const dm = decimals < 0 ? 0 : decimals;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+            }
+
+            // 根据文件类型设置图标
+            function updateFileIcon(type = '') {
+                const iconEl = fileIcon.querySelector('i') || document.createElement('i');
+                if (type.includes('image')) {
+                    iconEl.className = 'fas fa-file-image';
+                } else if (type.includes('pdf')) {
+                    iconEl.className = 'fas fa-file-pdf';
+                } else if (type.includes('word') || type.includes('document')) {
+                    iconEl.className = 'fas fa-file-word';
+                } else if (type.includes('zip') || type.includes('compressed')) {
+                    iconEl.className = 'fas fa-file-zipper';
+                } else if (type.includes('text')) {
+                    iconEl.className = 'fas fa-file-lines';
+                } else {
+                    iconEl.className = 'fas fa-file';
+                }
+                fileIcon.innerHTML = '';
+                fileIcon.appendChild(iconEl);
+            }
+
+            // 更新UI以显示当前文件信息 (或者隐藏卡片)
+            function renderFromFileInfo() {
+                if (currentFileInfo) {
+                    // 填充卡片数据
+                    fileNameSpan.textContent = currentFileInfo.name || '未知文件';
+                    fileSizeSpan.textContent = formatBytes(currentFileInfo.size || 0);
+                    const displayType = currentFileInfo.type || 'application/octet-stream';
+                    fileTypeSpan.textContent = displayType.split('/').pop() || 'bin';
+                    updateFileIcon(currentFileInfo.type);
+
+                    // 显示卡片，隐藏上传区
+                    uploadSection.classList.add('hidden');
+                    fileCard.classList.remove('hidden');
+
+                    // 更新分享链接显示 (当前页面的完整URL)
+                    const fullUrl = window.location.href;
+                    shareUrlText.textContent = fullUrl.length > 60 ? fullUrl.substring(0, 55) + '…' : fullUrl;
+                } else {
+                    // 隐藏卡片，显示上传区
+                    uploadSection.classList.remove('hidden');
+                    fileCard.classList.add('hidden');
+                }
+            }
+
+            // 从hash解析文件信息 (尝试)
+            function parseHashToFileInfo() {
+                const hash = window.location.hash;
+                if (!hash || hash === '#') {
+                    currentFileInfo = null;
+                    renderFromFileInfo();
+                    return;
+                }
+
+                try {
+                    // 去除开头的 #
+                    const encoded = hash.slice(1);
+                    const decoded = decodeURIComponent(encoded);
+                    const parsed = JSON.parse(decoded);
+                    // 基本结构验证
+                    if (parsed && typeof parsed === 'object' && parsed.name !== undefined && parsed.data && parsed.size !== undefined) {
+                        currentFileInfo = parsed;
+                    } else {
+                        // 格式不正确，清空hash
+                        console.warn('无效的文件信息结构');
+                        currentFileInfo = null;
+                        window.location.hash = '';
+                    }
+                } catch (e) {
+                    console.error('解析hash失败', e);
+                    // 非法hash，清空防止卡死
+                    currentFileInfo = null;
+                    window.location.hash = '';
+                }
+                renderFromFileInfo();
+            }
+
+            // 将文件信息写入hash (会触发hashchange)
+            function setHashFromFileInfo(info) {
+                if (!info) {
+                    window.location.hash = '';
+                    return;
+                }
+                try {
+                    const jsonStr = JSON.stringify(info);
+                    // 简单检查长度: 如果编码后太长可能超出浏览器限制，预警 (2MB限制对应base64大概)
+                    // 保守限制: 如果原始数据base64长度超过 1.8M 提示用户
+                    if (info.data && info.data.length > 1_800_000) {
+                        alert('文件编码后过长，可能导致链接不可用。建议上传小于1.5MB的文件。');
+                    }
+                    const encoded = encodeURIComponent(jsonStr);
+                    window.location.hash = encoded;
+                } catch (e) {
+                    alert('无法将文件存储到链接: 数据太大或格式错误');
+                    console.error(e);
+                }
+            }
+
+            // 处理上传的文件 (File对象)
+            function processFile(file) {
+                // 大小检查: 限制2MB (避免URL爆炸)
+                const maxSize = 2 * 1024 * 1024; // 2MB
+                if (file.size > maxSize) {
+                    alert(`文件超过2MB限制 (当前 ${formatBytes(file.size)})，无法存入链接。`);
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const dataUrl = e.target.result; // 格式: data:type;base64,xxxx
+                    const commaIdx = dataUrl.indexOf(',');
+                    const base64Data = dataUrl.substring(commaIdx + 1);
+                    // 提取MIME（其实可以从file.type获得，但确保一致性）
+                    let mimeType = file.type;
+                    if (!mimeType || mimeType === '') {
+                        // 尝试从dataUrl中提取
+                        const matches = dataUrl.match(/^data:([^;]+);/);
+                        mimeType = matches ? matches[1] : 'application/octet-stream';
+                    }
+
+                    const fileInfo = {
+                        name: file.name,
+                        type: mimeType,
+                        size: file.size,
+                        data: base64Data,   // 纯base64
+                    };
+
+                    // 存入hash (覆盖)
+                    setHashFromFileInfo(fileInfo);
+                    // hashchange会触发解析并更新UI，无需手动set currentFileInfo
+                };
+
+                reader.onerror = () => {
+                    alert('读取文件失败，请重试。');
+                };
+                reader.readAsDataURL(file);
+            }
+
+            // 下载当前文件
+            function downloadCurrentFile() {
+                if (!currentFileInfo) return;
+
+                try {
+                    const { data, name, type } = currentFileInfo;
+                    // 修复base64可能包含的换行/空格 (一般没有)
+                    const cleanBase64 = data.replace(/\s/g, '');
+                    const binaryString = atob(cleanBase64);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    const blob = new Blob([bytes], { type: type });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = name;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                } catch (err) {
+                    alert('下载失败：文件数据可能已损坏。');
+                    console.error(err);
+                }
+            }
+
+            // 复制当前链接到剪贴板
+            function copyShareLink() {
+                const url = window.location.href;
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('✅ 链接已复制！发送给朋友即可下载。');
+                }).catch(() => {
+                    // 降级
+                    const textArea = document.createElement('textarea');
+                    textArea.value = url;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    alert('📋 链接已复制（兼容模式）');
+                });
+            }
+
+            // 重置/清空
+            function resetData() {
+                if (window.location.hash) {
+                    window.location.hash = '';
+                } else {
+                    // 强制清空
+                    currentFileInfo = null;
+                    renderFromFileInfo();
+                }
+            }
+
+            // --- 事件绑定 ---
+
+            // 监听hash变化
+            window.addEventListener('hashchange', parseHashToFileInfo);
+            // 初始解析
+            parseHashToFileInfo();
+
+            // 上传区域点击
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // 文件选择
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    processFile(file);
+                }
+                // 清空input以便再次选择同一个文件
+                fileInput.value = '';
+            });
+
+            // 拖拽上传
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file) {
+                    processFile(file);
+                }
+            });
+
+            // 下载按钮
+            downloadBtn.addEventListener('click', downloadCurrentFile);
+
+            // 复制链接按钮 (两个)
+            copyLinkBtn.addEventListener('click', copyShareLink);
+            miniCopyBtn.addEventListener('click', copyShareLink);
+
+            // 重置按钮
+            resetBtn.addEventListener('click', resetData);
+
+            // 可选: 防止拖拽时浏览器直接打开文件
+            document.body.addEventListener('dragover', (e) => e.preventDefault());
+            document.body.addEventListener('drop', (e) => e.preventDefault());
+
+            // 如果卡片可见，且当前有fileInfo，下载/复制等操作正常
+            // 另外当重置后，有可能hash清空但currentFileInfo还没更新？hashchange会自动处理
+        })();
+    </script>
 </body>
 </html>
-
