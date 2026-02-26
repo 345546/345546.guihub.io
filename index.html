@@ -611,11 +611,13 @@
             // 拖拽上传区域
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 dropArea.addEventListener(eventName, preventDefaults, false);
+                console.log(`事件 ${eventName} 已绑定`);
             });
             
             function preventDefaults(e) {
                 e.preventDefault();
                 e.stopPropagation();
+                console.log('阻止默认行为');
             }
             
             ['dragenter', 'dragover'].forEach(eventName => {
@@ -628,10 +630,12 @@
             
             function highlight() {
                 dropArea.classList.add('border-primary');
+                console.log('高亮拖拽区域');
             }
             
             function unhighlight() {
                 dropArea.classList.remove('border-primary');
+                console.log('取消高亮拖拽区域');
             }
             
             dropArea.addEventListener('drop', handleDrop, false);
@@ -639,12 +643,20 @@
             function handleDrop(e) {
                 const dt = e.dataTransfer;
                 const files = dt.files;
+                console.log(`拖拽了 ${files.length} 个文件`);
                 handleFiles(files);
             }
             
             // 文件输入框变化事件
             fileInput.addEventListener('change', () => {
+                console.log(`选择了 ${fileInput.files.length} 个文件`);
                 handleFiles(fileInput.files);
+            });
+            
+            // 点击拖拽区域也可以选择文件
+            dropArea.addEventListener('click', () => {
+                console.log('点击了拖拽区域');
+                fileInput.click();
             });
             
             // 取消上传按钮
@@ -662,10 +674,23 @@
             
             // 提交上传按钮
             submitUpload.addEventListener('click', () => {
+                console.log('开始上传文件');
+                
+                // 隐藏表单，显示进度条
                 fileInfoForm.classList.add('hidden');
                 uploadProgress.classList.remove('hidden');
                 submitUpload.classList.add('hidden');
                 cancelUpload.classList.remove('hidden');
+                
+                // 获取文件信息
+                const fileName = document.getElementById('file-title').value || '新文件';
+                const fileDescription = document.getElementById('file-description').value || '暂无描述';
+                const fileCategory = document.getElementById('file-category').value;
+                const fileTags = document.getElementById('file-tags').value.split(',').map(tag => tag.trim()).filter(tag => tag);
+                
+                console.log(`文件名: ${fileName}`);
+                console.log(`文件分类: ${fileCategory}`);
+                console.log(`文件标签: ${fileTags.join(', ')}`);
                 
                 // 模拟上传进度
                 let progress = 0;
@@ -677,25 +702,32 @@
                     if (progress >= 100) {
                         clearInterval(interval);
                         setTimeout(() => {
+                            console.log('文件上传完成');
+                            
+                            // 显示成功消息
                             alert('文件上传成功！');
-                            resetUploadModal();
                             
                             // 添加新文件到列表
+                            const fileExtension = fileName.split('.').pop().toLowerCase();
                             const newFile = {
                                 id: mockFiles.length + 1,
-                                name: document.getElementById('file-title').value || '新文件',
-                                type: 'pdf', // 默认类型
-                                size: '1.2 MB',
+                                name: fileName,
+                                type: fileExtension,
+                                size: '1.2 MB', // 模拟大小
                                 uploadDate: new Date().toISOString().split('T')[0],
                                 downloadCount: 0,
-                                category: document.getElementById('file-category').value,
-                                tags: document.getElementById('file-tags').value.split(',').map(tag => tag.trim()).filter(tag => tag),
-                                description: document.getElementById('file-description').value || '暂无描述',
+                                category: fileCategory,
+                                tags: fileTags.length > 0 ? fileTags : ['未分类'],
+                                description: fileDescription,
                                 previewUrl: "https://p26-doubao-search-sign.byteimg.com/tos-cn-i-qvj2lq49k0/9dc4e7a824314a14b915ec99b9ffc735~tplv-be4g95zd3a-image.jpeg?lk3s=feb11e32&x-expires=1787659783&x-signature=qGdCqsQsaMOx2VWiK9TuAhRp%2BQ0%3D"
                             };
                             
+                            console.log('添加新文件到列表');
                             mockFiles.unshift(newFile);
                             filterFiles();
+                            
+                            // 重置上传模态框
+                            resetUploadModal();
                         }, 500);
                     }
                 }, 100);
@@ -782,46 +814,68 @@
 
         // 处理选择的文件
         function handleFiles(files) {
-            if (files.length === 0) return;
+            if (files.length === 0) {
+                console.log('没有选择文件');
+                return;
+            }
             
+            console.log(`开始处理 ${files.length} 个文件`);
+            
+            // 显示上传列表
             uploadList.classList.remove('hidden');
             uploadItems.innerHTML = '';
             
-            Array.from(files).forEach(file => {
+            // 创建文件项
+            Array.from(files).forEach((file, index) => {
+                console.log(`处理文件 ${index + 1}: ${file.name}`);
+                
                 const item = document.createElement('div');
                 item.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+                item.dataset.filename = file.name;
+                
+                // 获取文件类型图标
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+                const fileIcon = fileTypeIcons[fileExtension] || fileTypeIcons.default;
+                
                 item.innerHTML = `
                     <div class="flex items-center">
-                        <i class="fa fa-file-o text-gray-500 mr-3"></i>
+                        <i class="fa ${fileIcon} text-gray-500 mr-3"></i>
                         <div>
                             <p class="font-medium">${file.name}</p>
                             <p class="text-sm text-gray-500">${formatFileSize(file.size)}</p>
                         </div>
                     </div>
-                    <button class="text-red-500 hover:text-red-700">
+                    <button class="delete-file-btn text-red-500 hover:text-red-700">
                         <i class="fa fa-times"></i>
                     </button>
                 `;
                 uploadItems.appendChild(item);
                 
-                // 设置文件名到表单
+                // 设置文件名到表单（如果是单个文件）
                 if (files.length === 1) {
                     document.getElementById('file-title').value = file.name;
                 }
             });
             
+            // 显示继续按钮
             continueUpload.classList.remove('hidden');
             
-            // 删除文件项
-            uploadItems.querySelectorAll('button').forEach(btn => {
+            // 删除文件项的事件监听
+            uploadItems.querySelectorAll('.delete-file-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    e.target.closest('.flex.items-center.justify-between').remove();
+                    const fileItem = e.target.closest('.flex.items-center.justify-between');
+                    console.log(`删除文件: ${fileItem.dataset.filename}`);
+                    fileItem.remove();
+                    
+                    // 如果没有文件了，隐藏相关元素
                     if (uploadItems.children.length === 0) {
                         uploadList.classList.add('hidden');
                         continueUpload.classList.add('hidden');
                     }
                 });
             });
+            
+            console.log('文件处理完成');
         }
 
         // 格式化文件大小
